@@ -24,91 +24,93 @@ id			{letter}+({letter}|{digit})*
 %%
 
  /* Arithmetic */
-"+"     {  }
-"-" 	{  }
-"*" 	{  }
-"/" 	{  }
-"%"     {  }
-"++"    {  }
-"--"    {  }
+"+"     { return ADD; }
+"-" 	{ return SUB; }
+"*" 	{ return MUL; }
+"/" 	{ return DIV; }
+"%"     { return MOD; }
+"++"    { return INC; }
+"--"    { return DEC; }
 
  /* Relational */
-">"		{  }
-"<"		{  }
-">="	{  }
-"<="	{  }
-"=="	{  }
-"!="	{  }
+">"		{ return MT; }
+"<"		{ return LT; }
+">="	{ return MTE; }
+"<="	{ return LTE; }
+"=="	{ return EQ; }
+"!="	{ return NE; }
 
  /* Assignment */
-"="		{  }
-"+="	{  }
-"-="	{  }
-"*="	{  }
-"/="	{  }
-"%="	{  }
+"="		{ return ASGN; }
+"+="	{ return ADDASGN; }
+"-="	{ return SUBASGN; }
+"*="	{ return MULASGN; }
+"/="	{ return DIVASGN; }
+"%="	{ return MODASGN; }
 
  /* Logical */
-"&&"	{  }
-"||"	{  }
-"!"		{  }
+"&&"	{ return AND; }
+"||"	{ return OR; }
+"!"		{ return NOT; }
 
  /* Delimiters */
-"("		{ }
-")"		{  }
-"{"		{  }
-"}"		{  }
-"["		{  }
-"]"		{  }
-","		{  }
+"("		{ return LB; }
+")"		{ return RB; }
+"{"		{ return LCB; }
+"}"		{ return RCB; }
+"["		{ return LSB; }
+"]"		{ return RSB; }
+","		{ return COMMA; }
 
  /* Print Keywords */	
-"print"		{  }
+"print"		{ return PRINT; }
 
  /* Condition and Loop Keywords */
-"if"		{  }
-"else"		{  }
-"for"		{  }
-"while"		{  }
+"if"		{ return IF; }
+"else"		{ return ELSE; }
+"for"		{ return FOR; }
+"while"		{ return WHILE; }
 
  /* Declaration Keywords */
-"void"		{ }
-"int"		{ }
-"float"  	{ }
-"string"  	{ }
-"bool"  	{ }
+"void"		{ return VOID; }
+"int"		{ return INT; }
+"float"  	{ return FLOAT; }
+"string"  	{ return STRING; }
+"bool"  	{ return BOOL; }
 
  /* boolean Keywords */
-"true"      {  }
-"false"     {  }
+"true"      { return TRUE; }
+"false"     { return FALSE; }
 
-"return"    { }
+"return"    { return RET; }
+"continue"  { return CONT; }
+"break"     { return BREAK; }
 
  /* String Constant */
-\"				        { BEGIN STRING_STATE; }
-<STRING_STATE>\"		{ BEGIN INITIAL; }
+\"				        { return QUOTA; BEGIN STRING_STATE; }
+<STRING_STATE>\"		{ return STR_CONST; return QUOTA; BEGIN INITIAL; }
 <STRING_STATE>[^"]*		{  }
 
  /* Number Constant */
-{integer}	{  }
-{float}	    {  }
+{integer}	{ return I_CONST; }
+{float}	    { return F_CONST; }
 
  /* C type Comment */
 "/*"				{ BEGIN COMMENT; }
 <COMMENT>[^*\n]+	{  }
 <COMMENT>\n			{  }
 <COMMENT>"*"		{  }
-<COMMENT>"*/"		{  BEGIN INITIAL; }
+<COMMENT>"*/"		{ return COMMENT; BEGIN INITIAL; }
 
  /* C++ type Comment */
-\/\/.*	{  }
+\/\/.*	{ return COMMENT; }
 
  /* Variable ID */
- {id}       {  }
+ {id}       { return ID; }
 
  /* others */
 
-[;]         {  }
+[;]         { return SEMICOLON; }
 [\n]        {  }
 [ \t]		{ } /* Ignore */
 [^ \t\n] 	{ } /* Ignore other charactor sets */

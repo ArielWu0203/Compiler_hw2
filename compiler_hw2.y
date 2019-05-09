@@ -27,6 +27,9 @@ void dump_symbol();
 %token IF ELSE FOR
 %token ID SEMICOLON
 
+/* Declaration Keywords */
+%token VOID INT FLOAT STRING BOOL
+
 /* Token with return, which need to sepcify type */
 %token <i_val> I_CONST
 %token <f_val> F_CONST
@@ -43,18 +46,20 @@ void dump_symbol();
 
 program
     : program stat
-    |
+    | stat
 ;
 
 stat
     : declaration
+    /*
     | compound_stat
     | expression_stat
     | print_func
+    */
 ;
 
 declaration
-    : type ID '=' initializer SEMICOLON
+    : /*type ID '=' initializer SEMICOLON*/
     | type ID SEMICOLON
 ;
 
@@ -66,6 +71,7 @@ type
     | STRING { $$ = $1; }
     | VOID { $$ = $1; }
 ;
+
 
 %%
 
