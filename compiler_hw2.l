@@ -109,7 +109,7 @@ id			{letter}+({letter}|{digit})*
 \/\/.*	//{ return COMMENT; }
 
  /* Variable ID */
- {id}       { CONCAT; return ID; }
+ {id}       { CONCAT; yylval.string = strdup(yytext); return ID; }
 
  /* others */
 
