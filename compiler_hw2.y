@@ -1,7 +1,12 @@
 /*	Definition section */
 %{
+
+#include <stdio.h>
+#include <stdlib.h>
+
 extern int yylineno;
 extern int yylex();
+extern void yyerror(char *s);
 extern char* yytext;   // Get current token from lex
 extern char buf[256];  // Get current code line from lex
 
@@ -16,6 +21,7 @@ void dump_symbol();
 /* Use variable or self-defined structure to represent
  * nonterminal and token type
  */
+
 %union {
     int i_val;
     double f_val;
@@ -23,20 +29,51 @@ void dump_symbol();
 }
 
 /* Token without return */
-%token PRINT 
-%token IF ELSE FOR
-%token ID SEMICOLON
 
-/* Declaration Keywords */
-%token VOID INT FLOAT STRING BOOL
+/* Arithmetic */
+%token ADD SUB MUL DIV MOD INC DEC
+
+/* Relational */
+%token MT LT MTE LTE EQ NE
+
+/* Assignment */
+%token ASGN ADDASGN SUBASGN MULASGN DIVASGN MODASGN
+
+/* Logical */
+%token AND OR NOT
+
+/* Delimeters */
+%token LB RB LCB RCB LSB RSB COMMA
+
+/* Print Keywords*/
+%token PRINT 
+
+/* Condition and Loop Keywords */
+%token IF ELSE FOR WHILE
+
+/* boolean Keywords */
+%token TRUE FALSE
+%token RET CONT BREAK
+
+/* String Constant */
+%token STR_CONST QUOTA
+
+/* Comment */
+
+/* Variable ID & others */
+%token ID SEMICOLON
 
 /* Token with return, which need to sepcify type */
 %token <i_val> I_CONST
 %token <f_val> F_CONST
-%token <string> STRING
+%token <string> VOID INT FLOAT BOOL STRING
 
 /* Nonterminal with return, which need to sepcify type */
+/*
 %type <f_val> stat
+*/
+%type <f_val> initializer
+%type <string> type declaration stat program
 
 /* Yacc will start at this nonterminal */
 %start program
@@ -59,17 +96,22 @@ stat
 ;
 
 declaration
-    : /*type ID '=' initializer SEMICOLON*/
-    | type ID SEMICOLON
+    : type ID SEMICOLON
+    | type ID ASGN initializer SEMICOLON {printf("%f\n",$4);}
+;
+
+initializer
+    : I_CONST
+    | F_CONST
 ;
 
 /* actions can be taken when meet the token or rule */
 type
-    : INT { $$ = $1; }
-    | FLOAT { $$ = $1; }
-    | BOOL  { $$ = $1; }
-    | STRING { $$ = $1; }
-    | VOID { $$ = $1; }
+    : INT
+    | FLOAT
+    | BOOL 
+    | STRING 
+    | VOID 
 ;
 
 
