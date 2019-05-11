@@ -56,7 +56,7 @@ void dump_symbol();
 %token RET CONT BREAK
 
 /* String Constant */
-%token STR_CONST QUOTA
+%token QUOTA
 
 /* Comment */
 
@@ -64,6 +64,7 @@ void dump_symbol();
 %token SEMICOLON
 
 /* precedence */
+%left EQ NE LT LTE MT MTE
 %left ADD SUB
 %left MUL DIV MOD
 %left INC DEC
@@ -73,7 +74,7 @@ void dump_symbol();
 
 %token <i_val> I_CONST
 %token <f_val> F_CONST
-%token <string> VOID INT FLOAT BOOL STRING ID
+%token <string> VOID INT FLOAT BOOL STRING ID STR_CONST
 
 /* Nonterminal with return, which need to sepcify type */
 /*
@@ -93,17 +94,39 @@ program
 ;
 
 stat
-    : declaration
-    /*
-    | compound_stat
-    | expression_stat
-    | print_func
-    */
+    : print_func
+    | statement
 ;
 
 declaration
     : type ID SEMICOLON
-    | type ID assign_operator initializer SEMICOLON
+    | type ID ASGN initializer SEMICOLON
+;
+
+statement
+    : if_stat
+    | compound_stat
+    | assign_stat
+    | declaration
+;
+
+if_stat
+    : IF LB operator_stat RB statement
+    | IF LB operator_stat RB compound_stat ELSE statement
+;
+
+compound_stat
+    : LCB RCB
+    | LCB stat_list RCB
+;
+
+stat_list
+    : statement
+    | stat_list statement
+;
+
+assign_stat
+    : ID assign_operator operator_stat SEMICOLON
 ;
 
 assign_operator
@@ -120,43 +143,40 @@ initializer
 ;
 
 operator_stat
-    : operator_stat MUL operator_stat
-    | MUL term
-    | operator_stat DIV operator_stat
-    | DIV term
-    | operator_stat MOD operator_stat
-    | MOD term
-    | operator_stat ADD operator_stat
-    | ADD term
+    : operator_stat ADD operator_stat
     | operator_stat SUB operator_stat
-    | SUB term
+    | operator_stat MUL operator_stat
+    | operator_stat DIV operator_stat
+    | operator_stat MOD operator_stat
+    | operator_stat MT operator_stat  
+    | operator_stat LT operator_stat
+    | operator_stat MTE operator_stat
+    | operator_stat LTE operator_stat
+    | operator_stat EQ operator_stat
+    | operator_stat NE operator_stat
     | ID INC
-    | INC ID
     | ID DEC
+    | INC ID
     | DEC ID
+    | ADD operator_stat
+    | SUB operator_stat
     | term
     | LB operator_stat RB
 ;
 
+print_func
+    : PRINT LB ID RB SEMICOLON
+    | PRINT LB STR_CONST RB SEMICOLON
+;
+
 term
-    : F_CONST 
+    : F_CONST
     | I_CONST
+    | STR_CONST
+    | TRUE
+    | FALSE
     | ID
 ;
-
-/*unary_operator
-    : INC
-    | DEC
-;
-
-compare_operator
-    : MT
-    | LT
-    | MTE
-    | LTE
-    | EQ
-    | NE
-;*/
 
 /* actions can be taken when meet the token or rule */
 type

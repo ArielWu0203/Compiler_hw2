@@ -88,9 +88,9 @@ id			{letter}+({letter}|{digit})*
 "break"     { CONCAT; return BREAK; }
 
  /* String Constant */
-\"				        { BEGIN STRING_STATE; }
-<STRING_STATE>\"		{ BEGIN INITIAL;}
-<STRING_STATE>[^"]*		{  }
+\"				        { CONCAT; BEGIN STRING_STATE; }
+<STRING_STATE>\"		{ CONCAT; BEGIN INITIAL; return STR_CONST; }
+<STRING_STATE>[^"]*		{ CONCAT; yylval.string = strdup(yytext); } 
 
 
  /* Number Constant */
