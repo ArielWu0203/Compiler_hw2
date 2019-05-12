@@ -98,15 +98,15 @@ id			{letter}+({letter}|{digit})*
 {float}	    { CONCAT; yylval.f_val = atof(yytext); return F_CONST; }
 
  /* C type Comment */
-"/*"				{ BEGIN COMMENT; }
-<COMMENT>[^*\n]+	{  }
-<COMMENT>\n			{  }
-<COMMENT>"*"		{  }
-<COMMENT>"*/"		{ BEGIN INITIAL; }
+"/*"				{ CONCAT; BEGIN COMMENT; }
+<COMMENT>[^*\n]+	{ CONCAT; }
+<COMMENT>\n			{ printf("%d: %s\n",yylineno,buf); bzero(buf,BUF_SIZE); }
+<COMMENT>"*"		{ CONCAT; }
+<COMMENT>"*/"		{ CONCAT; BEGIN INITIAL;}
 
 
  /* C++ type Comment */
-\/\/.*	//{ return COMMENT; }
+\/\/.*	{}
 
  /* Variable ID */
  {id}       { CONCAT; yylval.string = strdup(yytext); return ID; }

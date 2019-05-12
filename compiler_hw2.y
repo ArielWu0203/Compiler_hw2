@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <string.h>
 extern int yylineno;
 extern int yylex();
 extern void yyerror(char *s);
@@ -12,9 +12,21 @@ extern char buf[256];  // Get current code line from lex
 
 /* Symbol table function - you can add new function if needed. */
 int lookup_symbol();
+void insert_symbol(int index,char *name,char *kind,char *type,int scope_level);
 void create_symbol();
-void insert_symbol();
 void dump_symbol();
+
+typedef struct symble_entry{
+    int index;
+    char name[50];
+    char kind[15];
+    char type[10];
+    int scope_level;
+    char attr[500];
+    struct symbol_entry *next;
+} Entry;
+
+Entry *front,*rear;
 
 %}
 
@@ -94,8 +106,7 @@ program
 ;
 
 stat
-    : print_func
-    | statement
+    : statement
 ;
 
 declaration
@@ -105,14 +116,45 @@ declaration
 
 statement
     : if_stat
+    | while_stat
     | compound_stat
+    | function_stat
     | assign_stat
     | declaration
+    | return_stat
+    | print_func
 ;
 
 if_stat
     : IF LB operator_stat RB statement
     | IF LB operator_stat RB compound_stat ELSE statement
+;
+
+while_stat
+    : WHILE LB operator_stat RB compound_stat
+;
+
+function_stat
+    : type ID LB declaration_list RB SEMICOLON
+    | type ID LB declaration_list RB compound_stat
+    | type ID LB RB SEMICOLON
+    | type ID LB RB compound_stat
+;
+
+return_stat
+    : RET SEMICOLON
+    | RET operator_stat SEMICOLON
+    | RET ID assign_operator operator_stat SEMICOLON
+;
+    
+declaration_list
+    : func_declaration
+    | declaration_list COMMA func_declaration
+;
+
+func_declaration
+    : type ID
+    | type ID ASGN initializer
 ;
 
 compound_stat
@@ -127,6 +169,11 @@ stat_list
 
 assign_stat
     : ID assign_operator operator_stat SEMICOLON
+    | ID INC SEMICOLON
+    | ID DEC SEMICOLON
+    | INC ID SEMICOLON
+    | DEC ID SEMICOLON
+
 ;
 
 assign_operator
@@ -195,8 +242,15 @@ int main(int argc, char** argv)
 {
     yylineno = 0;
 
+    create_symbol();
+    //char x[10] = "abc";
+    //insert_symbol(0,x,x,x,0);
+    //insert_symbol(1,"b","func","void",0);
+	//insert_symbol(2,"c","func","void",1);
+    //printf("%d %s\n",rear->index,rear->name);
+    //printf("%d %s\n",front->index,front->name);
     yyparse();
-	printf("\nTotal lines: %d \n",yylineno);
+    printf("\nTotal lines: %d \n",yylineno);
 
     return 0;
 }
@@ -209,8 +263,26 @@ void yyerror(char *s)
     printf("\n|-----------------------------------------------|\n\n");
 }
 
-void create_symbol() {}
-void insert_symbol() {}
+void create_symbol() {
+    front = rear = NULL;
+}
+void insert_symbol(int index,char *name,char *kind,char *type,int scope_level) {
+
+    printf("%s\n",name);
+    //Entry *new;
+    //new = (Entry*) malloc(sizeof(Entry));
+    //new->index = index;
+    //strcpy(new->name,name);
+    //strcpy(new->kind,kind);
+    //strcpy(new->type,type);
+    //new->scope_level=scope_level;
+    //if(front == NULL) {
+    //    front = new;
+    //}
+    //new->next=NULL;
+    //rear = new;
+
+}
 int lookup_symbol() {}
 void dump_symbol() {
     printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
