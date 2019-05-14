@@ -12,7 +12,7 @@ extern char buf[256];  // Get current code line from lex
 
 /* Symbol table function - you can add new function if needed. */
 int lookup_symbol();
-void insert_symbol(int index,char *name,char *kind,char *type,int scope_level);
+void insert_symbol(int index,char *name,char *kind,char *type,int scope_level,char *attr);
 void create_symbol();
 void dump_symbol();
 
@@ -24,10 +24,12 @@ typedef struct symble_entry{
     int scope_level;
     char attr[500];
     struct symbol_entry *next;
+    struct symbol_entry *prev;
 } Entry;
 
 Entry *front,*rear;
 
+int now_level = 0,now_index = 0, prev_index = 0;
 %}
 
 /* Use variable or self-defined structure to represent
@@ -92,7 +94,7 @@ Entry *front,*rear;
 /*
 %type <f_val> stat
 */
-%type <string> type
+%type <string> type func_declaration declaration_list
 
 /* Yacc will start at this nonterminal */
 %start program
@@ -101,16 +103,13 @@ Entry *front,*rear;
 %%
 
 program
-    : stat
-    | program stat
+    : statement
+    | program statement
 ;
 
-stat
-    : statement
-;
 
 declaration
-    : type ID SEMICOLON
+    : type ID SEMICOLON { insert_symbol(now_index,$2,"variable",$1,now_level,$4); now_level++; prev_index = now_index+1; now_index=0; }
     | type ID ASGN initializer SEMICOLON
 ;
 
@@ -126,7 +125,7 @@ statement
 ;
 
 if_stat
-    : IF LB operator_stat RB statement
+    : IF LB operator_stat RB statement 
     | IF LB operator_stat RB compound_stat ELSE statement
 ;
 
@@ -136,9 +135,11 @@ while_stat
 
 function_stat
     : type ID LB declaration_list RB SEMICOLON
-    | type ID LB declaration_list RB compound_stat
+    | type ID LB declaration_list RB compound_stat { insert_symbol(now_index,$2,"function",$1,now_level,$4); now_level++; prev_index = now_index+1; now_index=0; }
     | type ID LB RB SEMICOLON
-    | type ID LB RB compound_stat
+    | type ID LB RB compound_stat { insert_symbol(now_index,$2,"function",$1,now_level,""); now_level++; prev_index = now_index+1; now_index=0; }
+    | ID LB RB SEMICOLON
+    | ID LB parameter_list RB SEMICOLON
 ;
 
 return_stat
@@ -147,19 +148,25 @@ return_stat
     | RET ID assign_operator operator_stat SEMICOLON
 ;
     
+parameter_list
+    : parameter_list COMMA term
+    | term
+;
+
 declaration_list
     : func_declaration
-    | declaration_list COMMA func_declaration
+    | declaration_list COMMA func_declaration {strcat($$,", "); strcat($$, $3); }
+
 ;
 
 func_declaration
-    : type ID
-    | type ID ASGN initializer
+    : type ID { $$ = $1; }
+    | type ID ASGN initializer { $$ = $1; }
 ;
 
 compound_stat
-    : LCB RCB
-    | LCB stat_list RCB
+    : LCB RCB { now_index = prev_index; now_level--; }
+    | LCB stat_list RCB { now_index = prev_index; now_level--; }
 ;
 
 stat_list
@@ -243,14 +250,12 @@ int main(int argc, char** argv)
     yylineno = 0;
 
     create_symbol();
-    //char x[10] = "abc";
-    //insert_symbol(0,x,x,x,0);
-    //insert_symbol(1,"b","func","void",0);
-	//insert_symbol(2,"c","func","void",1);
-    //printf("%d %s\n",rear->index,rear->name);
-    //printf("%d %s\n",front->index,front->name);
+    char x[10] = "abc";
+
     yyparse();
     printf("\nTotal lines: %d \n",yylineno);
+
+    dump_symbol();
 
     return 0;
 }
@@ -264,27 +269,44 @@ void yyerror(char *s)
 }
 
 void create_symbol() {
-    front = rear = NULL;
+    front = rear= NULL;
 }
-void insert_symbol(int index,char *name,char *kind,char *type,int scope_level) {
 
-    printf("%s\n",name);
-    //Entry *new;
-    //new = (Entry*) malloc(sizeof(Entry));
-    //new->index = index;
-    //strcpy(new->name,name);
-    //strcpy(new->kind,kind);
-    //strcpy(new->type,type);
-    //new->scope_level=scope_level;
-    //if(front == NULL) {
-    //    front = new;
-    //}
-    //new->next=NULL;
-    //rear = new;
+void insert_symbol(int index,char *name,char *kind,char *type,int scope_level,char *attr) {
 
+    Entry *new;
+    new = (Entry*) malloc(sizeof(Entry));
+    new->index = index;
+    strcpy(new->name,name);
+    strcpy(new->kind,kind);
+    strcpy(new->type,type);
+    new->scope_level=scope_level;
+    strcpy(new->attr,attr);
+
+    //First node
+    if(front == NULL && rear == NULL) {
+        new->next = NULL;
+        new->prev = NULL;
+        front = rear = new;
+    }
+    else {
+        new->prev = rear;
+        new->next = NULL;
+        rear->next = new;
+        rear = new;
+    }
 }
+
 int lookup_symbol() {}
 void dump_symbol() {
     printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
            "Index", "Name", "Kind", "Type", "Scope", "Attribute");
+
+    Entry *head = front;
+    while( head != NULL) {
+        printf("%-10d%-10s%-12s%-10s%-10d%-10s",head->index,head->name,head->kind,head->type,head->scope_level,head->attr);
+        printf("\n");
+        head = head->next;
+    }
+
 }
