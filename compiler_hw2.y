@@ -29,7 +29,7 @@ typedef struct symble_entry{
 
 Entry *front,*rear;
 
-int now_level = 0,now_index = 0, prev_index = 0;
+int now_level = 0,now_index=0 ;
 %}
 
 /* Use variable or self-defined structure to represent
@@ -109,8 +109,9 @@ program
 
 
 declaration
-    : type ID SEMICOLON { insert_symbol(now_index,$2,"variable",$1,now_level,$4); now_level++; prev_index = now_index+1; now_index=0; }
-    | type ID ASGN initializer SEMICOLON
+    : type ID SEMICOLON { insert_symbol(now_index,$2,"variable",$1,now_level,""); now_index++; }
+    | type ID ASGN initializer SEMICOLON { insert_symbol(now_index,$2,"variable",$1,now_level,""); now_index++; }
+ 
 ;
 
 statement
@@ -125,8 +126,12 @@ statement
 ;
 
 if_stat
-    : IF LB operator_stat RB statement 
-    | IF LB operator_stat RB compound_stat ELSE statement
+    : IF LB operator_stat RB compound_stat 
+    | IF LB operator_stat RB compound_stat else_stat
+;
+
+else_stat
+    : ELSE statement 
 ;
 
 while_stat
@@ -135,9 +140,9 @@ while_stat
 
 function_stat
     : type ID LB declaration_list RB SEMICOLON
-    | type ID LB declaration_list RB compound_stat { insert_symbol(now_index,$2,"function",$1,now_level,$4); now_level++; prev_index = now_index+1; now_index=0; }
+    | type ID LB declaration_list RB compound_stat { insert_symbol(now_index,$2,"function",$1,now_level,$4); now_index++; }
     | type ID LB RB SEMICOLON
-    | type ID LB RB compound_stat { insert_symbol(now_index,$2,"function",$1,now_level,""); now_level++; prev_index = now_index+1; now_index=0; }
+    | type ID LB RB compound_stat { insert_symbol(now_index,$2,"function",$1,now_level,""); now_index++; }
     | ID LB RB SEMICOLON
     | ID LB parameter_list RB SEMICOLON
 ;
@@ -149,8 +154,8 @@ return_stat
 ;
     
 parameter_list
-    : parameter_list COMMA term
-    | term
+    : parameter_list COMMA operator_stat
+    | operator_stat
 ;
 
 declaration_list
@@ -160,13 +165,13 @@ declaration_list
 ;
 
 func_declaration
-    : type ID { $$ = $1; }
-    | type ID ASGN initializer { $$ = $1; }
+    : type ID { $$ = $1; insert_symbol(now_index,$2,"parameter",$1,now_level+1,""); now_index++; }
+    | type ID ASGN initializer { $$ = $1;  insert_symbol(now_index,$2,"parameter",$1,now_level+1,""); now_index++; }
 ;
 
 compound_stat
-    : LCB RCB { now_index = prev_index; now_level--; }
-    | LCB stat_list RCB { now_index = prev_index; now_level--; }
+    : LCB RCB  /*{ now_level++; }*/
+    | LCB stat_list RCB  /*{ now_level++; }*/
 ;
 
 stat_list
@@ -178,9 +183,6 @@ assign_stat
     : ID assign_operator operator_stat SEMICOLON
     | ID INC SEMICOLON
     | ID DEC SEMICOLON
-    | INC ID SEMICOLON
-    | DEC ID SEMICOLON
-
 ;
 
 assign_operator
@@ -210,8 +212,6 @@ operator_stat
     | operator_stat NE operator_stat
     | ID INC
     | ID DEC
-    | INC ID
-    | DEC ID
     | ADD operator_stat
     | SUB operator_stat
     | term
