@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
+
 extern int yylineno;
 extern int yylex();
 extern void yyerror(char *s);
@@ -14,7 +16,7 @@ extern char buf[256];  // Get current code line from lex
 int lookup_symbol();
 void insert_symbol(int index,char *name,char *kind,char *type,int scope_level,char *attr);
 void create_symbol();
-void dump_symbol();
+void dump_symbol(bool global);
 
 typedef struct symble_entry{
     int index;
@@ -28,6 +30,7 @@ typedef struct symble_entry{
 } Entry;
 
 Entry *front,*rear;
+void del_node(Entry *node);
 
 int now_level = 0,now_index=0 ;
 %}
@@ -253,9 +256,8 @@ int main(int argc, char** argv)
     char x[10] = "abc";
 
     yyparse();
+    dump_symbol(true);
     printf("\nTotal lines: %d \n",yylineno);
-
-    dump_symbol();
 
     return 0;
 }
@@ -298,15 +300,73 @@ void insert_symbol(int index,char *name,char *kind,char *type,int scope_level,ch
 }
 
 int lookup_symbol() {}
-void dump_symbol() {
-    printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
-           "Index", "Name", "Kind", "Type", "Scope", "Attribute");
+void del_node(Entry *node) {
+    if(node == front && front==rear) {
+        front->next = front->prev = rear->next = rear->prev = NULL;
+        free(node);
+        return;
+    }else if(node == front) {
+        front = node->next;
+        front->prev = NULL;
+        free(node);
+        return;
+    }else if(node == rear) {
+        rear = node->prev;
+        rear->next = NULL;
+        free(node);
+        return;
+    }else {
+        Entry *tmp_f = node->prev,*tmp_r = node->next;
+        tmp_f->next = tmp_r;
+        tmp_r->prev = tmp_f;
+        free(node);
+        return;
+    }
+}
+void dump_symbol(bool global) {
 
-    Entry *head = front;
-    while( head != NULL) {
-        printf("%-10d%-10s%-12s%-10s%-10d%-10s",head->index,head->name,head->kind,head->type,head->scope_level,head->attr);
+    int index = 0;
+    
+    // final golbal symbols
+    if(global == true) {
+        Entry *head = front;
+        if(head == NULL) {return;}
+
+        printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
+            "Index", "Name", "Kind", "Type", "Scope", "Attribute");
+        
+        while(head!=NULL) {
+            printf("%-10d%-10s%-12s%-10s%-10d%-10s\n",index,head->name,head->kind,head->type,head->scope_level,head->attr);
+            index++;
+            Entry *tmp = head;
+            head = head->next;
+            del_node(tmp);
+        }
         printf("\n");
-        head = head->next;
+        return;
     }
 
+    Entry *head = front;
+    while(head!=NULL) {
+        
+        if(head->scope_level == (now_level+1)) {
+            
+            printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
+                "Index", "Name", "Kind", "Type", "Scope", "Attribute");
+            while(head != NULL && head->scope_level == (now_level+1)) {
+                printf("%-10d%-10s%-12s%-10s%-10d%-10s\n",index,head->name,head->kind,head->type,head->scope_level,head->attr);
+                index++;
+
+                Entry *tmp = head;
+                head = head->next;
+                del_node(tmp);
+            }
+            printf("\n");
+            return;
+        }else{
+            head = head->next;
+        }
+    
+    }
+    return;
 }

@@ -119,7 +119,7 @@ id			{letter}+({letter}|{digit})*
  /* others */
 
 [;]         { CONCAT; return SEMICOLON; }
-[\n]        { if(buf[0] != '\0') {printf("%d: %s\n",yylineno, buf); bzero(buf,BUF_SIZE);} else{printf("%d:\n",yylineno);} if(dump) { dump_symbol(); dump = false; } }
+[\n]        { if(buf[0] != '\0') {printf("%d: %s\n",yylineno, buf); bzero(buf,BUF_SIZE);} else{printf("%d:\n",yylineno);} if(dump) { dump_symbol(false); dump = false; } }
 [ \t]		{ CONCAT; } /* Ignore */
 [^ \t\n] 	{ CONCAT; } /* Ignore other charactor sets */
 <<EOF>>     { return 0; }
