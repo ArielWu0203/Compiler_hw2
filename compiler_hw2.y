@@ -13,7 +13,10 @@ extern char* yytext;   // Get current token from lex
 extern char buf[256];  // Get current code line from lex
 
 /* Symbol table function - you can add new function if needed. */
-int lookup_symbol();
+int lookup_symbol(char *name,bool variable,int scope,bool declare);//true;undeclare false: redclare
+int error = 0;
+char ID_name[30] = "";
+
 void insert_symbol(int index,char *name,char *kind,char *type,int scope_level,char *attr);
 void create_symbol();
 void dump_symbol(int scope);
@@ -112,8 +115,26 @@ program
 
 
 declaration
-    : type ID SEMICOLON { insert_symbol(now_index,$2,"variable",$1,now_level,""); now_index++; }
-    | type ID ASGN initializer SEMICOLON { insert_symbol(now_index,$2,"variable",$1,now_level,""); now_index++; }
+    : type ID SEMICOLON 
+    {  
+      if(error == 0) error = lookup_symbol($2,true,now_level,false); 
+      if(error>0) {
+        strcpy(ID_name,$2);
+      } else {
+        insert_symbol(now_index,$2,"variable",$1,now_level,"");
+        now_index++; 
+      }
+    }
+    | type ID ASGN initializer SEMICOLON 
+    { 
+      if(error == 0) error = lookup_symbol($2,true,now_level,false); 
+      if(error>0) {
+        strcpy(ID_name,$2);
+      } else {
+        insert_symbol(now_index,$2,"variable",$1,now_level,"");
+        now_index++; 
+      }
+    }
  
 ;
 
@@ -142,12 +163,44 @@ while_stat
 ;
 
 function_stat
-    : type ID LB declaration_list RB SEMICOLON
-    | type ID LB declaration_list RB compound_stat { insert_symbol(now_index,$2,"function",$1,now_level,$4); now_index++; }
+    : type ID LB declaration_list RB SEMICOLON 
+    | type ID LB declaration_list RB compound_stat 
+    { 
+      if(error == 0) error = lookup_symbol($2,false,now_level,false); 
+      if(error>0) {
+        strcpy(ID_name,$2);
+      }else {
+        insert_symbol(now_index,$2,"function",$1,now_level,$4); 
+        now_index++;
+      }
+    }
     | type ID LB RB SEMICOLON
-    | type ID LB RB compound_stat { insert_symbol(now_index,$2,"function",$1,now_level,""); now_index++; }
-    | ID LB RB SEMICOLON
-    | ID LB parameter_list RB SEMICOLON
+    | type ID LB RB compound_stat
+    {       
+      if(error == 0) error = lookup_symbol($2,false,now_level,false); 
+      if(error>0) {
+        strcpy(ID_name,$2);
+      }else {
+        insert_symbol(now_index,$2,"function",$1,now_level,""); 
+        now_index++;}
+
+    }
+    | ID LB RB SEMICOLON 
+    {
+      if(error == 0) error = lookup_symbol($1,false,now_level,true); 
+      if(error>0) {
+        strcpy(ID_name,$1);
+      }
+    }
+    | ID LB parameter_list RB SEMICOLON 
+    {
+      printf("ID = %s\n",$1);
+      if(error == 0) error = lookup_symbol($1,false,now_level,true); 
+      if(error>0) {
+        strcpy(ID_name,$1);
+      }
+    }
+
 ;
 
 return_stat
@@ -163,18 +216,29 @@ parameter_list
 
 declaration_list
     : func_declaration
-    | declaration_list COMMA func_declaration {strcat($$,", "); strcat($$, $3); }
+    | declaration_list COMMA func_declaration
+    {
+      strcat($$,", "); strcat($$, $3);
+    }
 
 ;
 
 func_declaration
-    : type ID { $$ = $1; insert_symbol(now_index,$2,"parameter",$1,now_level+1,""); now_index++; }
-    | type ID ASGN initializer { $$ = $1;  insert_symbol(now_index,$2,"parameter",$1,now_level+1,""); now_index++; }
+    : type ID 
+    {
+      $$ = $1;
+      insert_symbol(now_index,$2,"parameter",$1,now_level+1,""); now_index++; 
+    }
+    | type ID ASGN initializer
+    { 
+      $$ = $1;  
+      insert_symbol(now_index,$2,"parameter",$1,now_level+1,""); now_index++; 
+    }
 ;
 
 compound_stat
-    : LCB RCB  /*{ now_level++; }*/
-    | LCB stat_list RCB  /*{ now_level++; }*/
+    : LCB RCB 
+    | LCB stat_list RCB 
 ;
 
 stat_list
@@ -183,9 +247,28 @@ stat_list
 ;
 
 assign_stat
-    : ID assign_operator operator_stat SEMICOLON
+    : ID assign_operator operator_stat SEMICOLON 
+    {
+      if(error == 0) error = lookup_symbol($1,true,now_level,true); 
+      if(error>0) {
+        strcpy(ID_name,$1);
+      }
+    }
     | ID INC SEMICOLON
-    | ID DEC SEMICOLON
+    { 
+      if(error == 0) error = lookup_symbol($1,true,now_level,true); 
+      if(error>0) {
+        strcpy(ID_name,$1);
+      }
+    }
+    | ID DEC SEMICOLON 
+    { 
+      if(error == 0) error = lookup_symbol($1,true,now_level,true); 
+      if(error>0) {
+        strcpy(ID_name,$1);
+      }
+    }
+
 ;
 
 assign_operator
@@ -213,8 +296,20 @@ operator_stat
     | operator_stat LTE operator_stat
     | operator_stat EQ operator_stat
     | operator_stat NE operator_stat
-    | ID INC
+    | ID INC 
+    { 
+      if(error == 0) error = lookup_symbol($1,true,now_level,true); 
+      if(error>0) {
+        strcpy(ID_name,$1);
+      }
+    }
     | ID DEC
+    { 
+      if(error == 0) error = lookup_symbol($1,true,now_level,true); 
+      if(error>0) {
+        strcpy(ID_name,$1);
+      }
+    }
     | ADD operator_stat
     | SUB operator_stat
     | term
@@ -222,7 +317,13 @@ operator_stat
 ;
 
 print_func
-    : PRINT LB ID RB SEMICOLON
+    : PRINT LB ID RB SEMICOLON 
+    { 
+      if(error == 0) error = lookup_symbol($3,true,now_level,true); 
+      if(error>0) {
+        strcpy(ID_name,$3);
+      }
+    }
     | PRINT LB STR_CONST RB SEMICOLON
 ;
 
@@ -261,6 +362,7 @@ int main(int argc, char** argv)
 
 void yyerror(char *s)
 {
+    printf("%d: %s\n",yylineno, buf);
     printf("\n|-----------------------------------------------|\n");
     printf("| Error found in line %d: %s\n", yylineno, buf);
     printf("| %s", s);
@@ -296,7 +398,36 @@ void insert_symbol(int index,char *name,char *kind,char *type,int scope_level,ch
     }
 }
 
-int lookup_symbol() {}
+int lookup_symbol( char *name,bool variable,int scope,bool declare )  {
+    if(declare) {
+        Entry *head = rear;
+        while(head!=NULL) {
+            if(head->scope_level <= scope && !strcmp(name,head->name)) { 
+                return 0;
+            }
+            head = head->prev;
+        }
+        if(variable) {
+            return 1;
+        }else {
+            return 2;
+        }
+    }else {  
+        Entry *head = rear;
+        while(head!=NULL) {
+            if(head->scope_level == scope && !strcmp(name,head->name)) { 
+                if(variable) {
+                    return 3;
+                }else {
+                    return 4;
+                }
+            }
+            head = head->prev;
+        }
+    }
+    return 0;
+}
+
 void del_node(Entry *node) {
     if(node == front && front==rear) {
         front = rear = NULL;

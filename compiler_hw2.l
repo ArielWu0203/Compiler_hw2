@@ -11,6 +11,8 @@ extern int now_level;
 extern void dump_symbol(int scope);
 bool dump = false;
 int same_line = 0;
+extern int error;
+extern char ID_name[30];
 
 /* This macro is used to record code line */
 #define CONCAT { strncat(buf, yytext, BUF_SIZE - strlen(buf) - 1); }
@@ -127,17 +129,44 @@ id			{letter}+({letter}|{digit})*
 
 [;]         { CONCAT; return SEMICOLON; }
 [\n]        { if(buf[0] != '\0') {
-                printf("%d: %s\n",yylineno, buf); bzero(buf,BUF_SIZE);
+                printf("%d: %s\n",yylineno, buf);
               } else {
                 printf("%d:\n",yylineno);
-              } 
-              if( dump && same_line==2) {
+              }
+              if( error == 1 ) {
+                printf("\n|-----------------------------------------------|\n");
+                printf("| Error found in line %d: %s\n", yylineno, buf);
+                printf("| Undclared %s %s","variable",ID_name);
+                printf("\n|-----------------------------------------------|\n\n");
+                bzero(ID_name,30);
+              } else if(error == 2 ){
+                printf("\n|-----------------------------------------------|\n");
+                printf("| Error found in line %d: %s\n", yylineno, buf);
+                printf("| Undclared %s %s","function",ID_name);
+                printf("\n|-----------------------------------------------|\n\n");
+                bzero(ID_name,30);
+              } else if( error == 3 ){
+                printf("\n|-----------------------------------------------|\n");
+                printf("| Error found in line %d: %s\n", yylineno, buf);
+                printf("| Redclared %s %s","variable",ID_name);
+                printf("\n|-----------------------------------------------|\n\n");
+                bzero(ID_name,30);
+              } else if( error == 4 ){
+                printf("\n|-----------------------------------------------|\n");
+                printf("| Error found in line %d: %s\n", yylineno, buf);
+                printf("| Redclared %s %s","function",ID_name);
+                printf("\n|-----------------------------------------------|\n\n");
+                bzero(ID_name,30);
+              }
+ 
+              else if( dump && same_line==2) {
                     dump_symbol(now_level);
               }
               else if(dump) { 
                 dump_symbol(1+now_level);
               } 
-              dump = false;same_line=0;
+              dump = false;same_line=0;error=0;
+              bzero(buf,BUF_SIZE);
             }
 [ \t]		{ CONCAT; } /* Ignore */
 [^ \t\n] 	{ CONCAT; } /* Ignore other charactor sets */
