@@ -8,8 +8,9 @@
 extern YYSTYPE yylval; //YYSTYPE
 char buf[BUF_SIZE];
 extern int now_level;
-extern void dump_symbol();
+extern void dump_symbol(int scope);
 bool dump = false;
+int same_line = 0;
 
 /* This macro is used to record code line */
 #define CONCAT { strncat(buf, yytext, BUF_SIZE - strlen(buf) - 1); }
@@ -62,8 +63,14 @@ id			{letter}+({letter}|{digit})*
  /* Delimiters */
 "("		{ CONCAT; return LB; }
 ")"		{ CONCAT; return RB; }
-"{"		{ CONCAT; now_level++; return LCB; }
-"}"		{ CONCAT; now_level--; dump = true; return RCB; }
+"{"		{ CONCAT; 
+          now_level++; 
+          if( same_line == 1) {
+            same_line++;
+          }
+          return LCB;
+        }
+"}"		{ CONCAT; now_level--; dump = true; same_line++; return RCB; }
 "["		{ CONCAT; return LSB; }
 "]"		{ CONCAT; return RSB; }
 ","		{ CONCAT; return COMMA; }
@@ -119,10 +126,25 @@ id			{letter}+({letter}|{digit})*
  /* others */
 
 [;]         { CONCAT; return SEMICOLON; }
-[\n]        { if(buf[0] != '\0') {printf("%d: %s\n",yylineno, buf); bzero(buf,BUF_SIZE);} else{printf("%d:\n",yylineno);} if(dump) { dump_symbol(false); dump = false; } }
+[\n]        { if(buf[0] != '\0') {
+                printf("%d: %s\n",yylineno, buf); bzero(buf,BUF_SIZE);
+              } else {
+                printf("%d:\n",yylineno);
+              } 
+              if( dump && same_line==2) {
+                    dump_symbol(now_level);
+              }
+              else if(dump) { 
+                dump_symbol(1+now_level);
+              } 
+              dump = false;same_line=0;
+            }
 [ \t]		{ CONCAT; } /* Ignore */
 [^ \t\n] 	{ CONCAT; } /* Ignore other charactor sets */
-<<EOF>>     { return 0; }
+<<EOF>>     { dump_symbol(0);
+              printf("\nTotal lines: %d \n",yylineno);
+              return 0;
+            }
 
 %%
 
