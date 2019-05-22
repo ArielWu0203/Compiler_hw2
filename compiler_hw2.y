@@ -14,6 +14,7 @@ extern char buf[256];  // Get current code line from lex
 
 /* Symbol table function - you can add new function if needed. */
 int lookup_symbol(char *name,bool variable,int scope,bool declare);//true;undeclare false: redclare
+bool syntax_error = false;
 int error = 0;
 char ID_name[30] = "";
 
@@ -111,8 +112,8 @@ int now_level = 0,now_index=0 ;
 program
     : statement
     | program statement
+    | error ';'
 ;
-
 
 declaration
     : type ID SEMICOLON 
@@ -163,7 +164,7 @@ while_stat
 ;
 
 function_stat
-    : type ID LB declaration_list RB SEMICOLON 
+    : type ID LB declaration_list RB SEMICOLON
     | type ID LB declaration_list RB compound_stat 
     { 
       if(error == 0) error = lookup_symbol($2,false,now_level,false); 
@@ -185,16 +186,19 @@ function_stat
         now_index++;}
 
     }
-    | ID LB RB SEMICOLON 
-    {
+    | ID LB RB SEMICOLON
+   {
       if(error == 0) error = lookup_symbol($1,false,now_level,true); 
       if(error>0) {
         strcpy(ID_name,$1);
       }
     }
-    | ID LB parameter_list RB SEMICOLON 
+    | function_call SEMICOLON
+;
+
+function_call
+    : ID LB parameter_list RB  
     {
-      printf("ID = %s\n",$1);
       if(error == 0) error = lookup_symbol($1,false,now_level,true); 
       if(error>0) {
         strcpy(ID_name,$1);
@@ -362,11 +366,14 @@ int main(int argc, char** argv)
 
 void yyerror(char *s)
 {
-    printf("%d: %s\n",yylineno, buf);
+    syntax_error = true;
+    /*
     printf("\n|-----------------------------------------------|\n");
     printf("| Error found in line %d: %s\n", yylineno, buf);
     printf("| %s", s);
     printf("\n|-----------------------------------------------|\n\n");
+
+    */
 }
 
 void create_symbol() {

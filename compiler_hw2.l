@@ -12,6 +12,7 @@ extern void dump_symbol(int scope);
 bool dump = false;
 int same_line = 0;
 extern int error;
+extern bool syntax_error;
 extern char ID_name[30];
 
 /* This macro is used to record code line */
@@ -136,29 +137,35 @@ id			{letter}+({letter}|{digit})*
               if( error == 1 ) {
                 printf("\n|-----------------------------------------------|\n");
                 printf("| Error found in line %d: %s\n", yylineno, buf);
-                printf("| Undclared %s %s","variable",ID_name);
+                printf("| Undeclared %s %s","variable",ID_name);
                 printf("\n|-----------------------------------------------|\n\n");
                 bzero(ID_name,30);
               } else if(error == 2 ){
                 printf("\n|-----------------------------------------------|\n");
                 printf("| Error found in line %d: %s\n", yylineno, buf);
-                printf("| Undclared %s %s","function",ID_name);
+                printf("| Undeclared %s %s","function",ID_name);
                 printf("\n|-----------------------------------------------|\n\n");
                 bzero(ID_name,30);
               } else if( error == 3 ){
                 printf("\n|-----------------------------------------------|\n");
                 printf("| Error found in line %d: %s\n", yylineno, buf);
-                printf("| Redclared %s %s","variable",ID_name);
+                printf("| Redeclared %s %s","variable",ID_name);
                 printf("\n|-----------------------------------------------|\n\n");
                 bzero(ID_name,30);
               } else if( error == 4 ){
                 printf("\n|-----------------------------------------------|\n");
                 printf("| Error found in line %d: %s\n", yylineno, buf);
-                printf("| Redclared %s %s","function",ID_name);
+                printf("| Redeclared %s %s","function",ID_name);
                 printf("\n|-----------------------------------------------|\n\n");
                 bzero(ID_name,30);
               }
- 
+              if(syntax_error) {
+                printf("\n|-----------------------------------------------|\n");
+                printf("| Error found in line %d: %s\n", yylineno, buf);
+                printf("| %s", "syntax error");
+                printf("\n|-----------------------------------------------|\n\n");
+                exit(1);
+              }
               else if( dump && same_line==2) {
                     dump_symbol(now_level);
               }
