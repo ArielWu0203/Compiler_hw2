@@ -22,7 +22,7 @@ void insert_symbol(int index,char *name,char *kind,char *type,int scope_level,ch
 void create_symbol();
 void dump_symbol(int scope);
 
-typedef struct symble_entry{
+typedef struct symbol_entry{
     int index;
     char name[50];
     char kind[15];
@@ -31,6 +31,7 @@ typedef struct symble_entry{
     char attr[500];
     struct symbol_entry *next;
     struct symbol_entry *prev;
+    bool forward_func;
 } Entry;
 
 Entry *front,*rear;
@@ -118,22 +119,28 @@ program
 declaration
     : type ID SEMICOLON 
     {  
-      if(error == 0) error = lookup_symbol($2,true,now_level,false); 
-      if(error>0) {
+      error = lookup_symbol($2,true,now_level,false); 
+      if(error > 0) {
         strcpy(ID_name,$2);
-      } else {
+      }
+      else {
         insert_symbol(now_index,$2,"variable",$1,now_level,"");
         now_index++; 
       }
     }
     | type ID ASGN initializer SEMICOLON 
     { 
-      if(error == 0) error = lookup_symbol($2,true,now_level,false); 
-      if(error>0) {
-        strcpy(ID_name,$2);
+      if (error == 0) {
+        error = lookup_symbol($2,true,now_level,false); 
+        if(error>0) {
+          strcpy(ID_name,$2);
+        } else {
+          insert_symbol(now_index,$2,"variable",$1,now_level,"");
+          now_index++; 
+        }
       } else {
-        insert_symbol(now_index,$2,"variable",$1,now_level,"");
-        now_index++; 
+          insert_symbol(now_index,$2,"variable",$1,now_level,"");
+          now_index++; 
       }
     }
  
@@ -167,7 +174,7 @@ function_stat
     : type ID LB declaration_list RB SEMICOLON
     | type ID LB declaration_list RB compound_stat 
     { 
-      if(error == 0) error = lookup_symbol($2,false,now_level,false); 
+      error = lookup_symbol($2,false,now_level,false); 
       if(error>0) {
         strcpy(ID_name,$2);
       }else {
@@ -178,19 +185,12 @@ function_stat
     | type ID LB RB SEMICOLON
     | type ID LB RB compound_stat
     {       
-      if(error == 0) error = lookup_symbol($2,false,now_level,false); 
+      error = lookup_symbol($2,false,now_level,false); 
       if(error>0) {
         strcpy(ID_name,$2);
       }else {
         insert_symbol(now_index,$2,"function",$1,now_level,""); 
-        now_index++;}
-
-    }
-    | ID LB RB SEMICOLON
-   {
-      if(error == 0) error = lookup_symbol($1,false,now_level,true); 
-      if(error>0) {
-        strcpy(ID_name,$1);
+        now_index++;
       }
     }
     | function_call SEMICOLON
@@ -199,12 +199,18 @@ function_stat
 function_call
     : ID LB parameter_list RB  
     {
-      if(error == 0) error = lookup_symbol($1,false,now_level,true); 
+      error = lookup_symbol($1,false,now_level,true); 
       if(error>0) {
         strcpy(ID_name,$1);
       }
     }
-
+    | ID LB RB SEMICOLON
+    {
+      error = lookup_symbol($1,false,now_level,true); 
+      if(error>0) {
+        strcpy(ID_name,$1);
+      }
+    }
 ;
 
 return_stat
@@ -253,21 +259,23 @@ stat_list
 assign_stat
     : ID assign_operator operator_stat SEMICOLON 
     {
-      if(error == 0) error = lookup_symbol($1,true,now_level,true); 
-      if(error>0) {
-        strcpy(ID_name,$1);
+      if(error == 0) {
+        error = lookup_symbol($1,true,now_level,true); 
+        if(error>0) {
+            strcpy(ID_name,$1);
+        }
       }
     }
     | ID INC SEMICOLON
     { 
-      if(error == 0) error = lookup_symbol($1,true,now_level,true); 
-      if(error>0) {
-        strcpy(ID_name,$1);
-      }
+        error = lookup_symbol($1,true,now_level,true); 
+        if(error>0) {
+            strcpy(ID_name,$1);
+        }
     }
     | ID DEC SEMICOLON 
     { 
-      if(error == 0) error = lookup_symbol($1,true,now_level,true); 
+      error = lookup_symbol($1,true,now_level,true); 
       if(error>0) {
         strcpy(ID_name,$1);
       }
@@ -302,28 +310,38 @@ operator_stat
     | operator_stat NE operator_stat
     | ID INC 
     { 
-      if(error == 0) error = lookup_symbol($1,true,now_level,true); 
-      if(error>0) {
-        strcpy(ID_name,$1);
+      if(error == 0) {
+        error = lookup_symbol($1,true,now_level,true); 
+        if(error>0) {
+            strcpy(ID_name,$1);
+        }
       }
     }
     | ID DEC
     { 
-      if(error == 0) error = lookup_symbol($1,true,now_level,true); 
-      if(error>0) {
-        strcpy(ID_name,$1);
+      if(error == 0) {
+        error = lookup_symbol($1,true,now_level,true); 
+        if(error>0) {
+            strcpy(ID_name,$1);
+        }
       }
     }
     | ADD operator_stat
     | SUB operator_stat
-    | term
+    | F_CONST
+    | I_CONST
+    | STR_CONST
+    | TRUE
+    | FALSE
+    | ID
     | LB operator_stat RB
+    | function_call
 ;
 
 print_func
     : PRINT LB ID RB SEMICOLON 
     { 
-      if(error == 0) error = lookup_symbol($3,true,now_level,true); 
+      error = lookup_symbol($3,true,now_level,true); 
       if(error>0) {
         strcpy(ID_name,$3);
       }
@@ -331,14 +349,6 @@ print_func
     | PRINT LB STR_CONST RB SEMICOLON
 ;
 
-term
-    : F_CONST
-    | I_CONST
-    | STR_CONST
-    | TRUE
-    | FALSE
-    | ID
-;
 
 /* actions can be taken when meet the token or rule */
 type
@@ -367,13 +377,6 @@ int main(int argc, char** argv)
 void yyerror(char *s)
 {
     syntax_error = true;
-    /*
-    printf("\n|-----------------------------------------------|\n");
-    printf("| Error found in line %d: %s\n", yylineno, buf);
-    printf("| %s", s);
-    printf("\n|-----------------------------------------------|\n\n");
-
-    */
 }
 
 void create_symbol() {
@@ -390,6 +393,7 @@ void insert_symbol(int index,char *name,char *kind,char *type,int scope_level,ch
     strcpy(new->type,type);
     new->scope_level=scope_level;
     strcpy(new->attr,attr);
+    new->forward_func = false;
 
     //First node
     if(front == NULL && rear == NULL) {
