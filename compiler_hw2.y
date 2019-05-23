@@ -17,6 +17,10 @@ int lookup_symbol(char *name,bool variable,int scope,bool declare);//true;undecl
 bool syntax_error = false;
 int error = 0;
 char ID_name[30] = "";
+char param[30][50];
+char param_t[30][50];
+int param_i = 0;
+bool func_error = false;
 
 void insert_symbol(int index,char *name,char *kind,char *type,int scope_level,char *attr);
 void create_symbol();
@@ -171,29 +175,55 @@ while_stat
 ;
 
 function_stat
-    : type ID LB declaration_list RB SEMICOLON
-    | type ID LB declaration_list RB compound_stat 
-    { 
+    : func_def SEMICOLON 
+    {
+      rear->forward_func = true;
+      param_i = 0;
+      func_error = false;
+    }
+    | func_def_start stat_list RCB
+    | func_def_start RCB
+    | function_call SEMICOLON
+;
+
+func_def_start
+    : func_def LCB 
+    {
+      if(!func_error) {
+        for(int i = 0 ; i < param_i ; i++) {
+            insert_symbol(now_index,param[i],"parameter",param_t[i],now_level,""); 
+            now_index++; 
+        }
+      }
+      param_i=0;
+      func_error = false;
+    }
+
+;
+
+func_def
+    : type ID LB declaration_list RB
+    {
       error = lookup_symbol($2,false,now_level,false); 
       if(error>0) {
         strcpy(ID_name,$2);
-      }else {
+        func_error = true;
+      }else if (error == 0){
         insert_symbol(now_index,$2,"function",$1,now_level,$4); 
         now_index++;
       }
     }
-    | type ID LB RB SEMICOLON
-    | type ID LB RB compound_stat
-    {       
+    | type ID LB RB
+    {
       error = lookup_symbol($2,false,now_level,false); 
       if(error>0) {
         strcpy(ID_name,$2);
-      }else {
+        func_error = true;
+      }else if (error == 0){
         insert_symbol(now_index,$2,"function",$1,now_level,""); 
         now_index++;
       }
     }
-    | function_call SEMICOLON
 ;
 
 function_call
@@ -204,7 +234,7 @@ function_call
         strcpy(ID_name,$1);
       }
     }
-    | ID LB RB SEMICOLON
+    | ID LB RB
     {
       error = lookup_symbol($1,false,now_level,true); 
       if(error>0) {
@@ -237,15 +267,12 @@ func_declaration
     : type ID 
     {
       $$ = $1;
-      insert_symbol(now_index,$2,"parameter",$1,now_level+1,""); now_index++; 
-    }
-    | type ID ASGN initializer
-    { 
-      $$ = $1;  
-      insert_symbol(now_index,$2,"parameter",$1,now_level+1,""); now_index++; 
+      strcpy(param_t[param_i],$1);
+      strcpy(param[param_i],$2);
+      param_i++;
+
     }
 ;
-
 compound_stat
     : LCB RCB 
     | LCB stat_list RCB 
@@ -334,6 +361,14 @@ operator_stat
     | TRUE
     | FALSE
     | ID
+    { 
+      if(error == 0) {
+        error = lookup_symbol($1,true,now_level,true); 
+        if(error>0) {
+            strcpy(ID_name,$1);
+        }
+      }
+    }
     | LB operator_stat RB
     | function_call
 ;
@@ -423,11 +458,15 @@ int lookup_symbol( char *name,bool variable,int scope,bool declare )  {
         }else {
             return 2;
         }
-    }else {  
+    }else {
         Entry *head = rear;
         while(head!=NULL) {
-            if(head->scope_level == scope && !strcmp(name,head->name)) { 
-                if(variable) {
+            if(head->scope_level == scope && !strcmp(name,head->name) ) { 
+                
+                if(head->forward_func) {
+                    return -1;
+                }
+                else if(variable) {
                     return 3;
                 }else {
                     return 4;
