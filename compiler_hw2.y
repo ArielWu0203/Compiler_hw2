@@ -197,8 +197,16 @@ function_stat
             }
     }
     | func_def_start RCB
-    {
-        printf("ID_name = %s\n",ID_name);
+    { 
+            Entry *head = front;
+            while(head!=NULL) {
+                if(!strcmp(head->name,ID_name)) {
+                    head->forward_func = false;
+                    break;
+                }
+                head = head->next;
+            }
+ 
     }
     | function_call SEMICOLON
 ;
