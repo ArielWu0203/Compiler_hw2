@@ -177,12 +177,29 @@ while_stat
 function_stat
     : func_def SEMICOLON 
     {
-      rear->forward_func = true;
+      if(error == 0){
+        rear->forward_func = true;
+      }else if(error == -1 ){
+        error = 4;
+      }
       param_i = 0;
       func_error = false;
     }
     | func_def_start stat_list RCB
+    {
+            Entry *head = front;
+            while(head!=NULL) {
+                if(!strcmp(head->name,ID_name)) {
+                    head->forward_func = false;
+                    break;
+                }
+                head = head->next;
+            }
+    }
     | func_def_start RCB
+    {
+        printf("ID_name = %s\n",ID_name);
+    }
     | function_call SEMICOLON
 ;
 
@@ -211,6 +228,8 @@ func_def
       }else if (error == 0){
         insert_symbol(now_index,$2,"function",$1,now_level,$4); 
         now_index++;
+      }else {
+        strcpy(ID_name,$2);
       }
     }
     | type ID LB RB
@@ -222,7 +241,10 @@ func_def
       }else if (error == 0){
         insert_symbol(now_index,$2,"function",$1,now_level,""); 
         now_index++;
+      }else {
+        strcpy(ID_name,$2);
       }
+
     }
 ;
 
